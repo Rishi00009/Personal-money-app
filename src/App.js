@@ -12,7 +12,7 @@ import {
 // ==========================================
 // 🔧 CONFIGURATION
 // ==========================================
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://personal-money-app-backend.onrender.com';
 
 // Color palette for charts
 const CHART_COLORS = {
