@@ -1,20 +1,17 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  Plus, Trash2, Search, X, Save, Filter,
-  TrendingUp, TrendingDown, Calendar, Tag,
-  Layout, List, ChevronDown, CreditCard,
+  Plus, Trash2, Search, X, Filter,
+  TrendingUp, TrendingDown, CreditCard,
   ArrowUpCircle, ArrowDownCircle, RefreshCw,
   AlertCircle, Wifi, WifiOff, Download,
-  BarChart3, PieChart as PieChartIcon,
-  CalendarDays, ChevronLeft, ChevronRight,
-  MoreVertical, Edit, FileText, Menu,
-  Home, BarChart, PieChart, DollarSign
+  BarChart3, Menu,
+  Home, Edit, MoreVertical
 } from 'lucide-react';
 
 // ==========================================
 // 🔧 CONFIGURATION
 // ==========================================
-const API_BASE_URL = 'https://personal-money-app-backend.onrender.com';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 // Color palette for charts
 const CHART_COLORS = {
@@ -95,17 +92,6 @@ const apiService = {
     }
   },
 
-  fetchAvailableYears: async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/years`);
-      if (!response.ok) throw new Error('Failed to fetch years');
-      return await response.json();
-    } catch (error) {
-      console.error('Fetch years error:', error);
-      return [new Date().getFullYear()];
-    }
-  },
-
   createTransaction: async (transaction) => {
     try {
       const response = await fetch(`${API_BASE_URL}/transactions`, {
@@ -168,11 +154,10 @@ const apiService = {
 };
 
 // ==========================================
-// 📊 SIMPLE CHART COMPONENTS (No recharts needed)
+// 📊 SIMPLE CHART COMPONENTS
 // ==========================================
 
-// Simple Bar Chart Component
-const SimpleBarChart = ({ data, title, height = 200 }) => {
+const SimpleBarChart = ({ data, title }) => {
   if (!data || data.length === 0) {
     return (
       <div className="h-48 flex items-center justify-center bg-slate-50 rounded-lg">
@@ -187,7 +172,6 @@ const SimpleBarChart = ({ data, title, height = 200 }) => {
     <div className="bg-white p-4 rounded-xl">
       <h3 className="font-bold text-slate-800 mb-4">{title}</h3>
       <div className="relative h-48">
-        {/* Y-axis labels */}
         <div className="absolute left-0 top-0 bottom-0 w-12 flex flex-col justify-between text-xs text-slate-500">
           <span>₹{maxValue.toLocaleString('en-IN')}</span>
           <span>₹{(maxValue * 0.75).toLocaleString('en-IN')}</span>
@@ -196,29 +180,24 @@ const SimpleBarChart = ({ data, title, height = 200 }) => {
           <span>₹0</span>
         </div>
         
-        {/* Bars container */}
         <div className="ml-12 h-full flex items-end justify-between gap-2">
           {data.slice(-6).map((item, index) => (
             <div key={index} className="flex-1 flex flex-col items-center">
-              {/* Bars */}
               <div className="w-full flex flex-col items-center justify-end h-36 gap-1">
                 {item.income > 0 && (
                   <div
                     className="w-3/4 bg-emerald-500 rounded-t"
                     style={{ height: `${(item.income / maxValue) * 100}%` }}
-                    title={`Income: ₹${item.income.toLocaleString('en-IN')}`}
                   />
                 )}
                 {item.expense > 0 && (
                   <div
                     className="w-3/4 bg-red-500 rounded-t"
                     style={{ height: `${(item.expense / maxValue) * 100}%` }}
-                    title={`Expense: ₹${item.expense.toLocaleString('en-IN')}`}
                   />
                 )}
               </div>
               
-              {/* X-axis label */}
               <div className="text-xs text-slate-500 mt-2 truncate w-full text-center">
                 {item.month}
               </div>
@@ -227,7 +206,6 @@ const SimpleBarChart = ({ data, title, height = 200 }) => {
         </div>
       </div>
       
-      {/* Legend */}
       <div className="flex justify-center gap-4 mt-4">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 bg-emerald-500 rounded"></div>
@@ -242,12 +220,11 @@ const SimpleBarChart = ({ data, title, height = 200 }) => {
   );
 };
 
-// Simple Pie Chart Component
-const SimplePieChart = ({ data, title, type = 'expense' }) => {
+const SimplePieChart = ({ data, title }) => {
   if (!data || data.length === 0) {
     return (
       <div className="h-48 flex items-center justify-center bg-slate-50 rounded-lg">
-        <p className="text-slate-400">No {type} data available</p>
+        <p className="text-slate-400">No data available</p>
       </div>
     );
   }
@@ -263,12 +240,10 @@ const SimplePieChart = ({ data, title, type = 'expense' }) => {
     <div className="bg-white p-4 rounded-xl">
       <h3 className="font-bold text-slate-800 mb-4">{title}</h3>
       <div className="flex flex-col sm:flex-row items-center gap-6">
-        {/* Pie Chart Visualization */}
         <div className="relative w-40 h-40">
           <div className="absolute inset-0 rounded-full border-8 border-slate-100"></div>
           
           {topCategories.map((category, index) => {
-            const percentage = (category.totalAmount / total) * 100;
             const cumulativePercentage = topCategories
               .slice(0, index)
               .reduce((sum, item) => sum + (item.totalAmount / total) * 360, 0);
@@ -289,15 +264,12 @@ const SimplePieChart = ({ data, title, type = 'expense' }) => {
           
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
-              <div className="text-2xl font-bold text-slate-800">
-                {type === 'income' ? '₹' : '₹'}
-              </div>
+              <div className="text-2xl font-bold text-slate-800">₹</div>
               <div className="text-xs text-slate-500">{topCategories.length} categories</div>
             </div>
           </div>
         </div>
         
-        {/* Legend */}
         <div className="flex-1 space-y-2">
           {topCategories.map((category, index) => (
             <div key={index} className="flex items-center justify-between">
@@ -326,7 +298,6 @@ const SimplePieChart = ({ data, title, type = 'expense' }) => {
   );
 };
 
-// Progress Bar Component
 const ProgressBar = ({ value, max, color = 'indigo', label }) => {
   const percentage = Math.min((value / max) * 100, 100);
   
@@ -353,9 +324,6 @@ const ProgressBar = ({ value, max, color = 'indigo', label }) => {
           style={{ width: `${percentage}%` }}
         />
       </div>
-      <div className="text-xs text-slate-500 text-right">
-        {percentage.toFixed(1)}%
-      </div>
     </div>
   );
 };
@@ -364,7 +332,6 @@ const ProgressBar = ({ value, max, color = 'indigo', label }) => {
 // 🎨 MOBILE-FIRST UI COMPONENTS
 // ==========================================
 
-// Mobile Bottom Navigation
 const BottomNav = ({ activeView, setActiveView }) => {
   const navItems = [
     { id: 'overview', label: 'Overview', icon: Home },
@@ -401,7 +368,6 @@ const BottomNav = ({ activeView, setActiveView }) => {
   );
 };
 
-// Mobile Header
 const MobileHeader = ({ title, onMenuClick, onRefresh, loading }) => (
   <div className="sticky top-0 z-40 bg-white border-b border-slate-200">
     <div className="flex items-center justify-between px-4 h-14">
@@ -425,7 +391,6 @@ const MobileHeader = ({ title, onMenuClick, onRefresh, loading }) => (
   </div>
 );
 
-// Transaction Card (Mobile Optimized)
 const TransactionCard = ({ transaction, onDelete, onEdit }) => {
   const isIncome = transaction.type === 'income';
   const formattedDate = new Date(transaction.date).toLocaleDateString('en-IN', {
@@ -438,7 +403,6 @@ const TransactionCard = ({ transaction, onDelete, onEdit }) => {
   return (
     <div className="bg-white rounded-lg p-3 mb-2 shadow-sm border border-slate-100 active:scale-[0.98] transition-transform">
       <div className="flex items-center gap-3">
-        {/* Icon */}
         <div className={`p-2 rounded-lg flex-shrink-0 ${isIncome ? 'bg-emerald-100' : 'bg-red-100'}`}>
           {isIncome ? (
             <ArrowUpCircle size={18} className="text-emerald-600" />
@@ -447,7 +411,6 @@ const TransactionCard = ({ transaction, onDelete, onEdit }) => {
           )}
         </div>
 
-        {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1">
             <h4 className="font-bold text-slate-800 truncate text-sm">{transaction.title}</h4>
@@ -465,7 +428,6 @@ const TransactionCard = ({ transaction, onDelete, onEdit }) => {
           </div>
         </div>
 
-        {/* Actions Button */}
         <button
           onClick={() => setShowActions(!showActions)}
           className="p-1 text-slate-400 active:scale-95"
@@ -474,7 +436,6 @@ const TransactionCard = ({ transaction, onDelete, onEdit }) => {
         </button>
       </div>
 
-      {/* Action Menu */}
       {showActions && (
         <div className="mt-3 pt-3 border-t border-slate-100 flex gap-2 animate-fade-in">
           <button
@@ -505,7 +466,6 @@ const TransactionCard = ({ transaction, onDelete, onEdit }) => {
   );
 };
 
-// Mobile Filter Modal
 const FilterModal = ({ isOpen, onClose, filters, setFilters, applyFilters }) => {
   const [localFilters, setLocalFilters] = useState(filters);
 
@@ -537,12 +497,10 @@ const FilterModal = ({ isOpen, onClose, filters, setFilters, applyFilters }) => 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm">
       <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[85vh] overflow-hidden">
-        {/* Handle Bar */}
         <div className="pt-4 pb-2">
           <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto"></div>
         </div>
 
-        {/* Header */}
         <div className="px-4 py-3 border-b border-slate-200">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold text-slate-800">Filters</h3>
@@ -555,10 +513,8 @@ const FilterModal = ({ isOpen, onClose, filters, setFilters, applyFilters }) => 
           </div>
         </div>
 
-        {/* Filter Content */}
         <div className="overflow-y-auto h-[calc(85vh-120px)] px-4 py-4">
           <div className="space-y-4">
-            {/* Type */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Transaction Type</label>
               <div className="grid grid-cols-2 gap-2">
@@ -587,7 +543,6 @@ const FilterModal = ({ isOpen, onClose, filters, setFilters, applyFilters }) => 
               </div>
             </div>
 
-            {/* Category */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Category</label>
               <select
@@ -604,7 +559,6 @@ const FilterModal = ({ isOpen, onClose, filters, setFilters, applyFilters }) => 
               </select>
             </div>
 
-            {/* Year & Month */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Year</label>
@@ -637,7 +591,6 @@ const FilterModal = ({ isOpen, onClose, filters, setFilters, applyFilters }) => 
               </div>
             </div>
 
-            {/* Search */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Search</label>
               <div className="relative">
@@ -654,7 +607,6 @@ const FilterModal = ({ isOpen, onClose, filters, setFilters, applyFilters }) => 
           </div>
         </div>
 
-        {/* Action Buttons */}
         <div className="border-t border-slate-200 p-4">
           <div className="grid grid-cols-2 gap-3">
             <button
@@ -676,7 +628,6 @@ const FilterModal = ({ isOpen, onClose, filters, setFilters, applyFilters }) => 
   );
 };
 
-// Mobile Transaction Modal
 const MobileTransactionModal = ({ isOpen, onClose, onSave, initialData, mode = 'add' }) => {
   const [formData, setFormData] = useState({
     title: '',
@@ -726,12 +677,10 @@ const MobileTransactionModal = ({ isOpen, onClose, onSave, initialData, mode = '
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm">
       <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[90vh] overflow-hidden">
-        {/* Handle Bar */}
         <div className="pt-4 pb-2">
           <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto"></div>
         </div>
 
-        {/* Header */}
         <div className="px-4 py-3 border-b border-slate-200">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold text-slate-800">
@@ -746,10 +695,8 @@ const MobileTransactionModal = ({ isOpen, onClose, onSave, initialData, mode = '
           </div>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="overflow-y-auto h-[calc(90vh-120px)] px-4 py-4">
           <div className="space-y-4">
-            {/* Amount */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Amount (₹)</label>
               <div className="relative">
@@ -768,7 +715,6 @@ const MobileTransactionModal = ({ isOpen, onClose, onSave, initialData, mode = '
               </div>
             </div>
 
-            {/* Type */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Type</label>
               <div className="grid grid-cols-2 gap-2">
@@ -799,7 +745,6 @@ const MobileTransactionModal = ({ isOpen, onClose, onSave, initialData, mode = '
               </div>
             </div>
 
-            {/* Title */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Title</label>
               <input
@@ -812,7 +757,6 @@ const MobileTransactionModal = ({ isOpen, onClose, onSave, initialData, mode = '
               />
             </div>
 
-            {/* Category */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Category</label>
               <select
@@ -826,7 +770,6 @@ const MobileTransactionModal = ({ isOpen, onClose, onSave, initialData, mode = '
               </select>
             </div>
 
-            {/* Date */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Date</label>
               <input
@@ -838,7 +781,6 @@ const MobileTransactionModal = ({ isOpen, onClose, onSave, initialData, mode = '
               />
             </div>
 
-            {/* Description */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Description (Optional)</label>
               <textarea
@@ -850,7 +792,6 @@ const MobileTransactionModal = ({ isOpen, onClose, onSave, initialData, mode = '
               />
             </div>
 
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
@@ -876,7 +817,6 @@ const MobileTransactionModal = ({ isOpen, onClose, onSave, initialData, mode = '
   );
 };
 
-// Mobile Summary Cards
 const MobileSummaryCards = ({ summary }) => (
   <div className="grid grid-cols-3 gap-2 mb-4">
     <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-3 text-white shadow-sm">
@@ -909,7 +849,6 @@ const MobileSummaryCards = ({ summary }) => (
   </div>
 );
 
-// Quick Actions Bar
 const QuickActionsBar = ({ onAddClick, onFilterClick, onExportClick }) => (
   <div className="sticky top-14 z-30 bg-white/95 backdrop-blur-sm border-b border-slate-200 px-4 py-3">
     <div className="flex items-center gap-2">
@@ -936,7 +875,6 @@ const QuickActionsBar = ({ onAddClick, onFilterClick, onExportClick }) => (
   </div>
 );
 
-// Loading Skeleton
 const LoadingSkeleton = () => (
   <div className="animate-pulse p-4">
     <div className="grid grid-cols-3 gap-2 mb-4">
@@ -978,7 +916,6 @@ export default function MobileExpenseTracker() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState('connecting');
-  const [availableYears, setAvailableYears] = useState([]);
   
   // Mobile UI states
   const [activeView, setActiveView] = useState('overview');
@@ -996,34 +933,8 @@ export default function MobileExpenseTracker() {
     search: ''
   });
 
-  // Initialize
-  useEffect(() => {
-    loadInitialData();
-  }, []);
-
-  // Load data when filters change
-  useEffect(() => {
-    if (activeView !== 'add_transaction') {
-      loadData();
-    }
-  }, [filters, activeView]);
-
-  const loadInitialData = async () => {
-    try {
-      const isConnected = await apiService.checkConnection();
-      setConnectionStatus(isConnected ? 'connected' : 'disconnected');
-      
-      if (isConnected) {
-        const years = await apiService.fetchAvailableYears();
-        setAvailableYears(years);
-      }
-    } catch (error) {
-      console.error('Initial load error:', error);
-      setConnectionStatus('disconnected');
-    }
-  };
-
-  const loadData = async () => {
+  // Load data function
+  const loadData = React.useCallback(async () => {
     setLoading(true);
     setError(null);
     
@@ -1067,6 +978,28 @@ export default function MobileExpenseTracker() {
       ]);
     } finally {
       setLoading(false);
+    }
+  }, [filters]);
+
+  // Initialize
+  useEffect(() => {
+    loadInitialData();
+  }, []);
+
+  // Load data when filters change
+  useEffect(() => {
+    if (activeView !== 'add_transaction') {
+      loadData();
+    }
+  }, [filters, activeView, loadData]);
+
+  const loadInitialData = async () => {
+    try {
+      const isConnected = await apiService.checkConnection();
+      setConnectionStatus(isConnected ? 'connected' : 'disconnected');
+    } catch (error) {
+      console.error('Initial load error:', error);
+      setConnectionStatus('disconnected');
     }
   };
 
@@ -1166,7 +1099,6 @@ export default function MobileExpenseTracker() {
       case 'overview':
         return (
           <div className="p-4 pb-20">
-            {/* Connection Status */}
             <div className={`mb-4 p-3 rounded-xl flex items-center gap-3 ${
               connectionStatus === 'connected'
                 ? 'bg-emerald-50 border border-emerald-200'
@@ -1193,28 +1125,22 @@ export default function MobileExpenseTracker() {
               </div>
             </div>
 
-            {/* Summary Cards */}
             <MobileSummaryCards summary={summary} />
 
-            {/* Monthly Trends Chart */}
             <div className="mb-4">
               <SimpleBarChart 
                 data={summary.monthly} 
                 title="Monthly Trends"
-                height={200}
               />
             </div>
 
-            {/* Category Breakdown */}
             <div className="mb-4">
               <SimplePieChart 
                 data={categoryAnalytics} 
                 title="Category Breakdown"
-                type="expense"
               />
             </div>
 
-            {/* Recent Transactions */}
             <div className="bg-white rounded-xl p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-slate-800">Recent Transactions</h3>
@@ -1264,7 +1190,6 @@ export default function MobileExpenseTracker() {
             />
             
             <div className="p-4">
-              {/* Filter Status */}
               {(filters.type || filters.category || filters.month || filters.year || filters.search) && (
                 <div className="mb-4 p-3 bg-indigo-50 rounded-xl">
                   <div className="flex items-center justify-between">
@@ -1296,7 +1221,6 @@ export default function MobileExpenseTracker() {
                 </div>
               )}
 
-              {/* Transactions List */}
               {loading ? (
                 <LoadingSkeleton />
               ) : transactions.length === 0 ? (
@@ -1349,10 +1273,8 @@ export default function MobileExpenseTracker() {
           <div className="p-4 pb-20">
             <h2 className="text-xl font-bold text-slate-800 mb-4">Analytics</h2>
             
-            {/* Summary Cards */}
             <MobileSummaryCards summary={summary} />
 
-            {/* Category Breakdown */}
             <div className="bg-white rounded-xl p-4 mb-4">
               <h3 className="font-bold text-slate-800 mb-4">Top Categories</h3>
               <div className="space-y-3">
@@ -1372,7 +1294,6 @@ export default function MobileExpenseTracker() {
               </div>
             </div>
 
-            {/* Monthly Summary */}
             <div className="bg-white rounded-xl p-4">
               <h3 className="font-bold text-slate-800 mb-4">Monthly Summary</h3>
               <div className="space-y-3">
@@ -1408,7 +1329,6 @@ export default function MobileExpenseTracker() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
-      {/* Mobile Header */}
       <MobileHeader
         title={
           activeView === 'overview' ? 'Overview' :
@@ -1420,7 +1340,6 @@ export default function MobileExpenseTracker() {
         loading={loading}
       />
 
-      {/* Main Content */}
       <main className="min-h-screen pb-16">
         {error && (
           <div className="mx-4 mt-4 p-3 bg-red-50 border border-red-200 rounded-xl">
@@ -1440,10 +1359,8 @@ export default function MobileExpenseTracker() {
         {renderView()}
       </main>
 
-      {/* Bottom Navigation */}
       <BottomNav activeView={activeView} setActiveView={setActiveView} />
 
-      {/* Modals */}
       <FilterModal
         isOpen={showFilterModal}
         onClose={() => setShowFilterModal(false)}
@@ -1466,22 +1383,6 @@ export default function MobileExpenseTracker() {
         initialData={editingTransaction}
         mode={modalMode}
       />
-
-      {/* Animations */}
-      <style jsx global>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-          animation: fadeIn 0.2s ease-out;
-        }
-        @media (max-width: 640px) {
-          input, textarea, select {
-            font-size: 16px !important;
-          }
-        }
-      `}</style>
     </div>
   );
 }
