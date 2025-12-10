@@ -5,7 +5,8 @@ import {
   ArrowUpCircle, ArrowDownCircle, RefreshCw,
   AlertCircle, Wifi, WifiOff, Download,
   BarChart3, Menu,
-  Home, Edit, MoreVertical
+  Home, Edit, MoreVertical,
+  List  // Added List icon here
 } from 'lucide-react';
 
 // ==========================================
@@ -761,7 +762,7 @@ const MobileTransactionModal = ({ isOpen, onClose, onSave, initialData, mode = '
               <label className="block text-sm font-medium text-slate-700 mb-2">Category</label>
               <select
                 value={formData.category}
-                onChange={e => setFormData({...formData, category: e.target.value})}
+                onChange={(e) => setFormData({...formData, category: e.target.value})}
                 className="w-full bg-white border border-slate-300 rounded-xl py-3 px-4 text-slate-800 focus:ring-2 focus:ring-indigo-200 outline-none"
               >
                 {categories.map(c => (
