@@ -1042,7 +1042,7 @@ export default function MobileExpenseTracker() {
       // Fetch category analytics for current filters
       const analyticsData = await apiService.fetchCategoryAnalytics(filters);
       setCategoryAnalytics(analyticsData);
-      
+      console.log('Retry Count' , retryCount); 
       setRetryCount(0); // Reset retry count on success
       
     } catch (error) {
