@@ -997,7 +997,7 @@ export default function MobileExpenseTracker() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState('connecting');
-  const [retryCount, setRetryCount] = useState(0);
+  // const [retryCount, setRetryCount] = useState(0);
   
   // Mobile UI states
   const [activeView, setActiveView] = useState('overview');
@@ -1042,8 +1042,8 @@ export default function MobileExpenseTracker() {
       // Fetch category analytics for current filters
       const analyticsData = await apiService.fetchCategoryAnalytics(filters);
       setCategoryAnalytics(analyticsData);
-      console.log('Retry Count' , retryCount); 
-      setRetryCount(0); // Reset retry count on success
+      // console.log('Retry Count' , retryCount); 
+      // setRetryCount(0); // Reset retry count on success
       
     } catch (error) {
       console.error('Error loading data:', error);
