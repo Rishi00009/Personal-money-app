@@ -6,13 +6,15 @@ import {
   AlertCircle, Wifi, WifiOff, Download,
   BarChart3, Menu,
   Home, Edit, MoreVertical,
-  List  // Added List icon here
+  List, Database, Server
 } from 'lucide-react';
 
 // ==========================================
-// 🔧 CONFIGURATION
+// 🔧 CONFIGURATION - UPDATED WITH YOUR BACKEND URL
 // ==========================================
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://personal-money-app-backend.onrender.com/api';
+
+console.log('Using backend URL:', API_BASE_URL);
 
 // Color palette for charts
 const CHART_COLORS = {
@@ -27,14 +29,23 @@ const CHART_COLORS = {
 };
 
 // ==========================================
-// 🛠️ API SERVICE
+// 🛠️ API SERVICE WITH YOUR BACKEND
 // ==========================================
 const apiService = {
   checkConnection: async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/health`);
-      return response.ok;
-    } catch {
+      console.log('Checking connection to:', `${API_BASE_URL}/health`);
+      const response = await fetch(`${API_BASE_URL}/health`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      const isConnected = response.ok;
+      console.log('Connection status:', isConnected ? 'Connected' : 'Failed');
+      return isConnected;
+    } catch (error) {
+      console.error('Connection check failed:', error.message);
       return false;
     }
   },
@@ -48,12 +59,24 @@ const apiService = {
         }
       });
 
-      const response = await fetch(`${API_BASE_URL}/transactions?${queryParams}`);
-      if (!response.ok) throw new Error('Failed to fetch transactions');
-      return await response.json();
+      console.log('Fetching from:', `${API_BASE_URL}/transactions?${queryParams}`);
+      const response = await fetch(`${API_BASE_URL}/transactions?${queryParams}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch transactions: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Fetched transactions:', data.transactions?.length || 0);
+      return data;
     } catch (error) {
-      console.error('Fetch transactions error:', error);
-      throw error;
+      console.error('Fetch error:', error);
+      throw new Error(`Cannot connect to backend at ${API_BASE_URL}`);
     }
   },
 
@@ -66,8 +89,17 @@ const apiService = {
         }
       });
 
-      const response = await fetch(`${API_BASE_URL}/summary?${queryParams}`);
-      if (!response.ok) throw new Error('Failed to fetch summary');
+      const response = await fetch(`${API_BASE_URL}/summary?${queryParams}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch summary: ${response.status}`);
+      }
+      
       return await response.json();
     } catch (error) {
       console.error('Fetch summary error:', error);
@@ -84,17 +116,27 @@ const apiService = {
         }
       });
 
-      const response = await fetch(`${API_BASE_URL}/analytics/categories?${queryParams}`);
-      if (!response.ok) throw new Error('Failed to fetch category analytics');
+      const response = await fetch(`${API_BASE_URL}/analytics/categories?${queryParams}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch analytics: ${response.status}`);
+      }
+      
       return await response.json();
     } catch (error) {
       console.error('Fetch category analytics error:', error);
-      throw error;
+      return [];
     }
   },
 
   createTransaction: async (transaction) => {
     try {
+      console.log('Creating transaction:', transaction);
       const response = await fetch(`${API_BASE_URL}/transactions`, {
         method: 'POST',
         headers: { 
@@ -104,8 +146,8 @@ const apiService = {
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create transaction');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to create transaction: ${response.status}`);
       }
       
       return await response.json();
@@ -118,12 +160,14 @@ const apiService = {
   deleteTransaction: async (id) => {
     try {
       const response = await fetch(`${API_BASE_URL}/transactions/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to delete transaction');
+        throw new Error(`Failed to delete transaction: ${response.status}`);
       }
       
       return await response.json();
@@ -142,8 +186,7 @@ const apiService = {
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update transaction');
+        throw new Error(`Failed to update transaction: ${response.status}`);
       }
       
       return await response.json();
@@ -162,7 +205,10 @@ const SimpleBarChart = ({ data, title }) => {
   if (!data || data.length === 0) {
     return (
       <div className="h-48 flex items-center justify-center bg-slate-50 rounded-lg">
-        <p className="text-slate-400">No data available</p>
+        <div className="text-center">
+          <BarChart3 size={32} className="text-slate-300 mx-auto mb-2" />
+          <p className="text-slate-400">No data available</p>
+        </div>
       </div>
     );
   }
@@ -225,7 +271,12 @@ const SimplePieChart = ({ data, title }) => {
   if (!data || data.length === 0) {
     return (
       <div className="h-48 flex items-center justify-center bg-slate-50 rounded-lg">
-        <p className="text-slate-400">No data available</p>
+        <div className="text-center">
+          <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-2">
+            <Database size={24} className="text-slate-300" />
+          </div>
+          <p className="text-slate-400">No data available</p>
+        </div>
       </div>
     );
   }
@@ -333,29 +384,35 @@ const ProgressBar = ({ value, max, color = 'indigo', label }) => {
 // 🎨 MOBILE-FIRST UI COMPONENTS
 // ==========================================
 
-const BottomNav = ({ activeView, setActiveView }) => {
+const BottomNav = ({ activeView, setActiveView, showTransactionModal }) => {
   const navItems = [
     { id: 'overview', label: 'Overview', icon: Home },
     { id: 'transactions', label: 'Transactions', icon: CreditCard },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'add', label: 'Add', icon: Plus }
+    // { id: 'add', label: 'Add', icon: Plus }
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 shadow-lg">
-      <div className="flex justify-around items-center h-16 px-2">
+    <div className="fixed bottom-0 bg-gray-100 left-0 right-0 bg-white border-t border-slate-200 z-50 shadow-lg">
+      <div className="flex justify-around  items-center h-16 px-2">
         {navItems.map((item) => (
           <button
             key={item.id}
-            onClick={() => item.id === 'add' ? setActiveView('add_transaction') : setActiveView(item.id)}
+            onClick={() => {
+              if (item.id === 'add') {
+                setActiveView('add_transaction');
+              } else {
+                setActiveView(item.id);
+              }
+            }}
             className={`flex flex-col items-center justify-center w-16 h-16 rounded-xl transition-all active:scale-95 ${
-              activeView === item.id || (item.id === 'add' && activeView === 'add_transaction')
+              activeView === item.id || (item.id === 'add' && showTransactionModal)
                 ? 'text-indigo-600'
                 : 'text-slate-500 hover:text-slate-700'
             }`}
           >
             <div className={`p-2 rounded-full ${
-              activeView === item.id || (item.id === 'add' && activeView === 'add_transaction')
+              activeView === item.id || (item.id === 'add' && showTransactionModal)
                 ? 'bg-indigo-100'
                 : ''
             }`}>
@@ -369,7 +426,7 @@ const BottomNav = ({ activeView, setActiveView }) => {
   );
 };
 
-const MobileHeader = ({ title, onMenuClick, onRefresh, loading }) => (
+const MobileHeader = ({ title, onMenuClick, onRefresh, loading, connectionStatus }) => (
   <div className="sticky top-0 z-40 bg-white border-b border-slate-200">
     <div className="flex items-center justify-between px-4 h-14">
       <div className="flex items-center gap-3">
@@ -381,13 +438,27 @@ const MobileHeader = ({ title, onMenuClick, onRefresh, loading }) => (
         </button>
         <h1 className="text-lg font-bold text-slate-800">{title}</h1>
       </div>
-      <button
-        onClick={onRefresh}
-        disabled={loading}
-        className="p-2 active:scale-95"
-      >
-        <RefreshCw size={18} className={`text-slate-600 ${loading ? 'animate-spin' : ''}`} />
-      </button>
+      <div className="flex items-center gap-2">
+        <div className={`px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${
+          connectionStatus === 'connected'
+            ? 'bg-emerald-100 text-emerald-700'
+            : 'bg-amber-100 text-amber-700'
+        }`}>
+          {connectionStatus === 'connected' ? (
+            <Wifi size={12} />
+          ) : (
+            <WifiOff size={12} />
+          )}
+          <span>{connectionStatus === 'connected' ? 'Online' : 'Offline'}</span>
+        </div>
+        <button
+          onClick={onRefresh}
+          disabled={loading}
+          className="p-2 active:scale-95"
+        >
+          <RefreshCw size={18} className={`text-slate-600 ${loading ? 'animate-spin' : ''}`} />
+        </button>
+      </div>
     </div>
   </div>
 );
@@ -496,8 +567,8 @@ const FilterModal = ({ isOpen, onClose, filters, setFilters, applyFilters }) => 
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm">
-      <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[85vh] overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm ">
+      <div className="absolute bottom-0 left-0 right-0 bg-white h-[90%] rounded-t-2xl max-h-[85vh] overflow-hidden">
         <div className="pt-4 pb-2">
           <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto"></div>
         </div>
@@ -514,7 +585,7 @@ const FilterModal = ({ isOpen, onClose, filters, setFilters, applyFilters }) => 
           </div>
         </div>
 
-        <div className="overflow-y-auto h-[calc(85vh-120px)] px-4 py-4">
+        <div className="overflow-y-auto h-[70%] px-4 py-4">
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Transaction Type</label>
@@ -629,7 +700,7 @@ const FilterModal = ({ isOpen, onClose, filters, setFilters, applyFilters }) => 
   );
 };
 
-const MobileTransactionModal = ({ isOpen, onClose, onSave, initialData, mode = 'add' }) => {
+const MobileTransactionModal = ({ isOpen, onClose, onSave, initialData, mode = 'add', connectionStatus }) => {
   const [formData, setFormData] = useState({
     title: '',
     amount: '',
@@ -644,8 +715,8 @@ const MobileTransactionModal = ({ isOpen, onClose, onSave, initialData, mode = '
 
   if (!isOpen) return null;
 
-  const incomeCategories = ['Salary', 'Freelance', 'Business', 'Investment', 'Gift', 'Other Income'];
-  const expenseCategories = ['Home Rent', 'Food & Essentials', 'Transport', 'Entertainment', 'Healthcare', 'Other Expense'];
+  const incomeCategories = ['Salary', 'Freelance', 'Business', 'Investment', 'Gift'];
+  const expenseCategories = ['Home Rent', 'Food & Groceries', 'Transport', 'Entertainment', 'Healthcare', 'Recharge', 'Clothes and wearables'];
 
   const categories = formData.type === 'income' ? incomeCategories : expenseCategories;
 
@@ -684,9 +755,23 @@ const MobileTransactionModal = ({ isOpen, onClose, onSave, initialData, mode = '
 
         <div className="px-4 py-3 border-b border-slate-200">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold text-slate-800">
-              {mode === 'edit' ? 'Edit Transaction' : 'New Transaction'}
-            </h3>
+            <div className="flex items-center gap-3">
+              <h3 className="text-lg font-bold text-slate-800">
+                {mode === 'edit' ? 'Edit Transaction' : 'New Transaction'}
+              </h3>
+              <div className={`px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${
+                connectionStatus === 'connected'
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : 'bg-amber-100 text-amber-700'
+              }`}>
+                {connectionStatus === 'connected' ? (
+                  <Wifi size={10} />
+                ) : (
+                  <WifiOff size={10} />
+                )}
+                <span>{connectionStatus === 'connected' ? 'Online' : 'Offline'}</span>
+              </div>
+            </div>
             <button
               onClick={onClose}
               className="p-2 -mr-2 active:scale-95"
@@ -850,27 +935,22 @@ const MobileSummaryCards = ({ summary }) => (
   </div>
 );
 
-const QuickActionsBar = ({ onAddClick, onFilterClick, onExportClick }) => (
+const QuickActionsBar = ({ onFilterClick, onExportClick }) => (
   <div className="sticky top-14 z-30 bg-white/95 backdrop-blur-sm border-b border-slate-200 px-4 py-3">
     <div className="flex items-center gap-2">
       <button
-        onClick={onAddClick}
-        className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl font-medium flex items-center justify-center gap-2 active:scale-95"
-      >
-        <Plus size={16} />
-        <span>Add Transaction</span>
-      </button>
-      <button
         onClick={onFilterClick}
-        className="p-2.5 border border-slate-300 text-slate-700 rounded-xl active:scale-95"
+        className="flex-1 py-2.5 border border-slate-300 text-slate-700 rounded-xl font-medium flex items-center justify-center gap-2 active:scale-95"
       >
         <Filter size={16} />
+        <span>Filters</span>
       </button>
       <button
         onClick={onExportClick}
-        className="p-2.5 border border-slate-300 text-slate-700 rounded-xl active:scale-95"
+        className="flex-1 py-2.5 border border-slate-300 text-slate-700 rounded-xl font-medium flex items-center justify-center gap-2 active:scale-95"
       >
         <Download size={16} />
+        <span>Export</span>
       </button>
     </div>
   </div>
@@ -917,6 +997,7 @@ export default function MobileExpenseTracker() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState('connecting');
+  const [retryCount, setRetryCount] = useState(0);
   
   // Mobile UI states
   const [activeView, setActiveView] = useState('overview');
@@ -940,6 +1021,16 @@ export default function MobileExpenseTracker() {
     setError(null);
     
     try {
+      console.log('Loading data from:', API_BASE_URL);
+      
+      // First check connection
+      const isConnected = await apiService.checkConnection();
+      setConnectionStatus(isConnected ? 'connected' : 'disconnected');
+      
+      if (!isConnected) {
+        throw new Error(`Cannot connect to backend server at ${API_BASE_URL}. Please make sure the backend is running.`);
+      }
+      
       // Fetch transactions with current filters
       const transactionsData = await apiService.fetchTransactions(filters);
       setTransactions(transactionsData.transactions || []);
@@ -952,9 +1043,12 @@ export default function MobileExpenseTracker() {
       const analyticsData = await apiService.fetchCategoryAnalytics(filters);
       setCategoryAnalytics(analyticsData);
       
+      setRetryCount(0); // Reset retry count on success
+      
     } catch (error) {
       console.error('Error loading data:', error);
-      setError('Failed to load data. Please check your connection.');
+      setConnectionStatus('disconnected');
+      setError(`Backend connection failed: ${error.message}`);
       
       // Fallback to demo data for mobile
       const demoTransactions = [
@@ -996,8 +1090,10 @@ export default function MobileExpenseTracker() {
 
   const loadInitialData = async () => {
     try {
+      console.log('Initializing connection to:', API_BASE_URL);
       const isConnected = await apiService.checkConnection();
       setConnectionStatus(isConnected ? 'connected' : 'disconnected');
+      console.log('Initial connection status:', isConnected ? 'Connected' : 'Disconnected');
     } catch (error) {
       console.error('Initial load error:', error);
       setConnectionStatus('disconnected');
@@ -1012,19 +1108,7 @@ export default function MobileExpenseTracker() {
       setActiveView('transactions');
       loadData();
     } catch (error) {
-      // If offline, add locally
-      if (error.message.includes('Failed to fetch')) {
-        const localTransaction = {
-          ...data,
-          _id: Date.now().toString(),
-          date: new Date(data.date).toISOString()
-        };
-        setTransactions(prev => [localTransaction, ...prev]);
-        setShowTransactionModal(false);
-        setActiveView('transactions');
-      } else {
-        alert(error.message || 'Failed to save transaction');
-      }
+      alert(`Failed to save transaction: ${error.message}`);
     }
   };
 
@@ -1037,7 +1121,7 @@ export default function MobileExpenseTracker() {
       setShowTransactionModal(false);
       loadData();
     } catch (error) {
-      alert(error.message || 'Failed to update transaction');
+      alert(`Failed to update transaction: ${error.message}`);
     }
   };
 
@@ -1047,12 +1131,7 @@ export default function MobileExpenseTracker() {
       setTransactions(prev => prev.filter(t => t._id !== id));
       loadData();
     } catch (error) {
-      // If offline, delete locally
-      if (error.message.includes('Failed to fetch')) {
-        setTransactions(prev => prev.filter(t => t._id !== id));
-      } else {
-        alert(error.message || 'Failed to delete transaction');
-      }
+      alert(`Failed to delete transaction: ${error.message}`);
     }
   };
 
@@ -1100,29 +1179,43 @@ export default function MobileExpenseTracker() {
       case 'overview':
         return (
           <div className="p-4 pb-20">
-            <div className={`mb-4 p-3 rounded-xl flex items-center gap-3 ${
+            {/* Connection Status Banner */}
+            <div className={`mb-4 p-4 rounded-xl flex items-start gap-3 ${
               connectionStatus === 'connected'
                 ? 'bg-emerald-50 border border-emerald-200'
                 : 'bg-amber-50 border border-amber-200'
             }`}>
-              <div className={`p-2 rounded-full ${
+              <div className={`p-2 rounded-full mt-0.5 ${
                 connectionStatus === 'connected' ? 'bg-emerald-100' : 'bg-amber-100'
               }`}>
                 {connectionStatus === 'connected' ? (
-                  <Wifi size={16} className="text-emerald-600" />
+                  <Wifi size={18} className="text-emerald-600" />
                 ) : (
-                  <WifiOff size={16} className="text-amber-600" />
+                  <WifiOff size={18} className="text-amber-600" />
                 )}
               </div>
-              <div>
+              <div className="flex-1">
                 <p className="font-medium text-slate-800">
-                  {connectionStatus === 'connected' ? 'Online' : 'Offline Mode'}
+                  {connectionStatus === 'connected' ? '✅ Connected to Backend' : '⚠️ Offline Mode'}
                 </p>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-slate-500 mt-1">
                   {connectionStatus === 'connected' 
-                    ? 'Data synced with server' 
-                    : 'Working with local data'}
+                    ? `Data synced with ${API_BASE_URL.replace('https://', '')}` 
+                    : 'Working with demo data. Backend not accessible.'}
                 </p>
+                {connectionStatus === 'disconnected' && (
+                  <div className="mt-2 space-y-2">
+                    <p className="text-xs text-slate-600">
+                      Backend URL: {API_BASE_URL}
+                    </p>
+                    <button
+                      onClick={loadData}
+                      className="text-sm text-amber-700 font-medium flex items-center gap-1 active:scale-95"
+                    >
+                      <RefreshCw size={12} /> Retry Connection
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1178,96 +1271,124 @@ export default function MobileExpenseTracker() {
           </div>
         );
 
-      case 'transactions':
-        return (
-          <div className="pb-20">
-            <QuickActionsBar
-              onAddClick={() => {
+case 'transactions':
+  return (
+    <div className="flex flex-col h-screen">
+      <QuickActionsBar
+        onFilterClick={() => setShowFilterModal(true)}
+        onExportClick={exportToCSV}
+      />
+      
+      <div className="flex-1 flex flex-col p-4 overflow-hidden">
+        {/* Connection Warning */}
+        {connectionStatus === 'disconnected' && (
+          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+            <div className="flex items-center gap-2">
+              <AlertCircle size={16} className="text-amber-600" />
+              <p className="text-sm text-amber-800">
+                Offline mode - using demo data
+              </p>
+            </div>
+          </div>
+        )}
+
+        {(filters.type || filters.category || filters.month || filters.year || filters.search) && (
+          <div className="mb-4 p-3 bg-indigo-50 rounded-xl">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1 flex-wrap">
+                <span className="text-sm text-indigo-700">Filters:</span>
+                {filters.type && (
+                  <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-xs">
+                    {filters.type}
+                  </span>
+                )}
+                {filters.category && (
+                  <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-xs">
+                    {filters.category}
+                  </span>
+                )}
+                {filters.search && (
+                  <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-xs">
+                    Search: {filters.search}
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => setFilters({ type: '', category: '', month: '', year: '', search: '' })}
+                className="text-sm text-indigo-600 font-medium active:scale-95"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        )}
+
+        {loading ? (
+          <LoadingSkeleton />
+        ) : transactions.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-center">
+            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <List size={24} className="text-slate-400" />
+            </div>
+            <h4 className="text-lg font-medium text-slate-700 mb-2">No transactions</h4>
+            <p className="text-slate-500 mb-6">
+              {Object.values(filters).some(f => f) 
+                ? 'No transactions match your filters' 
+                : 'Start by adding your first transaction'}
+            </p>
+            <button
+              onClick={() => {
                 setModalMode('add');
                 setShowTransactionModal(true);
               }}
-              onFilterClick={() => setShowFilterModal(true)}
-              onExportClick={exportToCSV}
-            />
+              className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium active:scale-95"
+            >
+              Add Transaction
+            </button>
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-slate-800">Transactions ({transactions.length})</h3>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-500">
+                  Balance: ₹{summary.totals.balance.toLocaleString('en-IN')}
+                </span>
+                <div className={`w-2 h-2 rounded-full ${
+                  connectionStatus === 'connected' ? 'bg-emerald-500' : 'bg-amber-500'
+                }`}></div>
+              </div>
+            </div>
             
-            <div className="p-4">
-              {(filters.type || filters.category || filters.month || filters.year || filters.search) && (
-                <div className="mb-4 p-3 bg-indigo-50 rounded-xl">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1 flex-wrap">
-                      <span className="text-sm text-indigo-700">Filters:</span>
-                      {filters.type && (
-                        <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-xs">
-                          {filters.type}
-                        </span>
-                      )}
-                      {filters.category && (
-                        <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-xs">
-                          {filters.category}
-                        </span>
-                      )}
-                      {filters.search && (
-                        <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-xs">
-                          Search: {filters.search}
-                        </span>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => setFilters({ type: '', category: '', month: '', year: '', search: '' })}
-                      className="text-sm text-indigo-600 font-medium active:scale-95"
-                    >
-                      Clear
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {loading ? (
-                <LoadingSkeleton />
-              ) : transactions.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <List size={24} className="text-slate-400" />
-                  </div>
-                  <h4 className="text-lg font-medium text-slate-700 mb-2">No transactions</h4>
-                  <p className="text-slate-500 mb-6">
-                    {Object.values(filters).some(f => f) 
-                      ? 'No transactions match your filters' 
-                      : 'Start by adding your first transaction'}
-                  </p>
-                  <button
-                    onClick={() => {
-                      setModalMode('add');
-                      setShowTransactionModal(true);
-                    }}
-                    className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium active:scale-95"
-                  >
-                    Add Transaction
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-slate-800">Transactions ({transactions.length})</h3>
-                    <span className="text-sm text-slate-500">
-                      Total: ₹{summary.totals.balance.toLocaleString('en-IN')}
-                    </span>
-                  </div>
-                  <div>
-                    {transactions.map(transaction => (
-                      <TransactionCard
-                        key={transaction._id}
-                        transaction={transaction}
-                        onDelete={handleDelete}
-                        onEdit={handleEdit}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
+            <div className="flex-1 overflow-y-auto mb-4 pr-2 -mr-2">
+              {transactions.map(transaction => (
+                <TransactionCard
+                  key={transaction._id}
+                  transaction={transaction}
+                  onDelete={handleDelete}
+                  onEdit={handleEdit}
+                />
+              ))}
+            </div>
+            
+            {/* Add Transaction Button at Bottom - Always visible */}
+            <div className="mt-auto pt-4">
+              <button
+                onClick={() => {
+                  setModalMode('add');
+                  setShowTransactionModal(true);
+                }}
+                className="w-full py-3.5 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 shadow-md"
+              >
+                <Plus size={20} />
+                <span>Add New Transaction</span>
+              </button>
             </div>
           </div>
-        );
+        )}
+      </div>
+    </div>
+  );
 
       case 'analytics':
         return (
@@ -1329,7 +1450,7 @@ export default function MobileExpenseTracker() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
+    <div className="h-[50%] bg-slate-50 text-slate-900 font-sans">
       <MobileHeader
         title={
           activeView === 'overview' ? 'Overview' :
@@ -1339,28 +1460,52 @@ export default function MobileExpenseTracker() {
         onMenuClick={() => setShowFilterModal(true)}
         onRefresh={loadData}
         loading={loading}
+        connectionStatus={connectionStatus}
       />
 
       <main className="min-h-screen pb-16">
-        {error && (
-          <div className="mx-4 mt-4 p-3 bg-red-50 border border-red-200 rounded-xl">
-            <div className="flex items-center gap-2">
-              <AlertCircle size={16} className="text-red-600 flex-shrink-0" />
-              <p className="text-sm text-red-800">{error}</p>
+        {error && connectionStatus === 'disconnected' && (
+          <div className="mx-4 mt-4 p-4 bg-red-50 border border-red-200 rounded-xl">
+            <div className="flex items-start gap-3">
+              <Server size={18} className="text-red-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="font-medium text-red-800">Backend Connection Failed</p>
+                <p className="text-sm text-red-600 mt-1">{error}</p>
+                <div className="mt-3 space-y-2">
+                  <p className="text-xs text-slate-600">
+                    Trying to connect to: <code className="bg-slate-100 px-1 rounded">{API_BASE_URL}</code>
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={loadData}
+                      className="text-sm bg-red-100 text-red-700 px-3 py-1.5 rounded-lg font-medium flex items-center gap-1 active:scale-95"
+                    >
+                      <RefreshCw size={12} /> Retry Connection
+                    </button>
+                    <button
+                      onClick={() => {
+                        setError(null);
+                        setConnectionStatus('disconnected');
+                      }}
+                      className="text-sm text-slate-600 px-3 py-1.5 rounded-lg font-medium active:scale-95"
+                    >
+                      Use Demo Data
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
-            <button
-              onClick={loadData}
-              className="mt-2 text-sm text-red-700 font-medium flex items-center gap-1 active:scale-95"
-            >
-              <RefreshCw size={12} /> Retry
-            </button>
           </div>
         )}
 
         {renderView()}
       </main>
 
-      <BottomNav activeView={activeView} setActiveView={setActiveView} />
+      <BottomNav 
+        activeView={activeView} 
+        setActiveView={setActiveView}
+        showTransactionModal={showTransactionModal}
+      />
 
       <FilterModal
         isOpen={showFilterModal}
@@ -1383,6 +1528,7 @@ export default function MobileExpenseTracker() {
         onSave={handleSaveTransaction}
         initialData={editingTransaction}
         mode={modalMode}
+        connectionStatus={connectionStatus}
       />
     </div>
   );
