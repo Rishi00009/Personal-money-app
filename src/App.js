@@ -389,30 +389,25 @@ const BottomNav = ({ activeView, setActiveView, showTransactionModal }) => {
     { id: 'overview', label: 'Overview', icon: Home },
     { id: 'transactions', label: 'Transactions', icon: CreditCard },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-    // { id: 'add', label: 'Add', icon: Plus }
   ];
 
   return (
-    <div className="fixed bottom-0 bg-gray-100 left-0 right-0 bg-white border-t border-slate-200 z-50 shadow-lg">
-      <div className="flex justify-around  items-center h-16 px-2">
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 shadow-lg">
+      <div className="flex justify-around items-center h-16 px-2">
         {navItems.map((item) => (
           <button
             key={item.id}
             onClick={() => {
-              if (item.id === 'add') {
-                setActiveView('add_transaction');
-              } else {
-                setActiveView(item.id);
-              }
+              setActiveView(item.id);
             }}
             className={`flex flex-col items-center justify-center w-16 h-16 rounded-xl transition-all active:scale-95 ${
-              activeView === item.id || (item.id === 'add' && showTransactionModal)
+              activeView === item.id
                 ? 'text-indigo-600'
                 : 'text-slate-500 hover:text-slate-700'
             }`}
           >
             <div className={`p-2 rounded-full ${
-              activeView === item.id || (item.id === 'add' && showTransactionModal)
+              activeView === item.id
                 ? 'bg-indigo-100'
                 : ''
             }`}>
@@ -748,7 +743,7 @@ const MobileTransactionModal = ({ isOpen, onClose, onSave, initialData, mode = '
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm">
-      <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[90vh] overflow-hidden">
+      <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl h-auto max-h-[85vh]">
         <div className="pt-4 pb-2">
           <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto"></div>
         </div>
@@ -781,7 +776,7 @@ const MobileTransactionModal = ({ isOpen, onClose, onSave, initialData, mode = '
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="overflow-y-auto h-[calc(90vh-120px)] px-4 py-4">
+        <form onSubmit={handleSubmit} className="px-4 py-4">
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Amount (₹)</label>
@@ -874,28 +869,30 @@ const MobileTransactionModal = ({ isOpen, onClose, onSave, initialData, mode = '
                 onChange={e => setFormData({...formData, description: e.target.value})}
                 className="w-full bg-white border border-slate-300 rounded-xl py-3 px-4 text-slate-800 focus:ring-2 focus:ring-indigo-200 outline-none"
                 placeholder="Add a note..."
-                rows="3"
+                rows="2"
               />
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full py-3 rounded-xl font-bold text-white ${
-                formData.type === 'income' 
-                  ? 'bg-emerald-600 hover:bg-emerald-700' 
-                  : 'bg-red-600 hover:bg-red-700'
-              } disabled:opacity-50 disabled:cursor-not-allowed active:scale-95`}
-            >
-              {loading ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
-                  {mode === 'edit' ? 'Updating...' : 'Saving...'}
-                </div>
-              ) : (
-                `${mode === 'edit' ? 'Update' : 'Save'} ${formData.type === 'income' ? 'Income' : 'Expense'}`
-              )}
-            </button>
+            <div className="pt-4">
+              <button
+                type="submit"
+                disabled={loading}
+                className={`w-full py-3 rounded-xl font-bold text-white ${
+                  formData.type === 'income' 
+                    ? 'bg-emerald-600 hover:bg-emerald-700' 
+                    : 'bg-red-600 hover:bg-red-700'
+                } disabled:opacity-50 disabled:cursor-not-allowed active:scale-95`}
+              >
+                {loading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                    {mode === 'edit' ? 'Updating...' : 'Saving...'}
+                  </div>
+                ) : (
+                  `${mode === 'edit' ? 'Update' : 'Save'} ${formData.type === 'income' ? 'Income' : 'Expense'}`
+                )}
+              </button>
+            </div>
           </div>
         </form>
       </div>
@@ -997,7 +994,6 @@ export default function MobileExpenseTracker() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState('connecting');
-  // const [retryCount, setRetryCount] = useState(0);
   
   // Mobile UI states
   const [activeView, setActiveView] = useState('overview');
@@ -1042,8 +1038,6 @@ export default function MobileExpenseTracker() {
       // Fetch category analytics for current filters
       const analyticsData = await apiService.fetchCategoryAnalytics(filters);
       setCategoryAnalytics(analyticsData);
-      // console.log('Retry Count' , retryCount); 
-      // setRetryCount(0); // Reset retry count on success
       
     } catch (error) {
       console.error('Error loading data:', error);
@@ -1271,7 +1265,7 @@ export default function MobileExpenseTracker() {
           </div>
         );
 
-case 'transactions':
+      case 'transactions':
   return (
     <div className="flex flex-col h-screen">
       <QuickActionsBar
@@ -1279,7 +1273,7 @@ case 'transactions':
         onExportClick={exportToCSV}
       />
       
-      <div className="flex-1 flex flex-col p-4 overflow-hidden">
+      <div className="flex-1 flex flex-col p-4">
         {/* Connection Warning */}
         {connectionStatus === 'disconnected' && (
           <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl">
@@ -1347,7 +1341,7 @@ case 'transactions':
             </button>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col relative">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-slate-800">Transactions ({transactions.length})</h3>
               <div className="flex items-center gap-2">
@@ -1360,7 +1354,8 @@ case 'transactions':
               </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto mb-4 pr-2 -mr-2">
+            {/* Transaction list with bottom padding for button */}
+            <div className="flex-1  pb-20">
               {transactions.map(transaction => (
                 <TransactionCard
                   key={transaction._id}
@@ -1371,14 +1366,14 @@ case 'transactions':
               ))}
             </div>
             
-            {/* Add Transaction Button at Bottom - Always visible */}
-            <div className="mt-auto pt-4">
+            {/* Sticky Add Transaction Button - Always visible at bottom */}
+            <div className="sticky bottom-20 left-0 right-0 px-4 mt-4">
               <button
                 onClick={() => {
                   setModalMode('add');
                   setShowTransactionModal(true);
                 }}
-                className="w-full py-3.5 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 shadow-md"
+                className="w-full py-3.5 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 shadow-lg"
               >
                 <Plus size={20} />
                 <span>Add New Transaction</span>
@@ -1449,8 +1444,8 @@ case 'transactions':
     }
   };
 
-  return (
-    <div className="h-[50%] bg-slate-50 text-slate-900 font-sans">
+    return (
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
       <MobileHeader
         title={
           activeView === 'overview' ? 'Overview' :
@@ -1463,7 +1458,7 @@ case 'transactions':
         connectionStatus={connectionStatus}
       />
 
-      <main className="min-h-screen pb-16">
+      <main className="min-h-[calc(100vh-56px)] pb-16">
         {error && connectionStatus === 'disconnected' && (
           <div className="mx-4 mt-4 p-4 bg-red-50 border border-red-200 rounded-xl">
             <div className="flex items-start gap-3">
